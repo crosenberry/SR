@@ -3,38 +3,37 @@ import pandas as pd
 import tensorflow as tf
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
-
-
-def generate_exxon_rnn(start_dates, end_dates):
-    xom = yf.Ticker('XOM')
-    xom_data = xom.history(start=start_dates, end=end_dates)
+# This file is for the RNN model for Chevron
+def generate_chevron_rnn(start_dates, end_dates):
+    cvx = yf.Ticker('CVX')
+    cvx_data = cvx.history(start=start_dates, end=end_dates)
     sp500 = yf.Ticker('^GSPC')
     sp500_data = sp500.history(start=start_dates, end=end_dates)
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
-    # Combine the data
+    # Combine the data of the three stocks
     data = pd.DataFrame({
-        'XOM_Close': xom_data['Close'].values,
+        'CVX_Close': cvx_data['Close'].values,
         'SP500_Close': sp500_data['Close'].values,
         'Oil_Close': cl_data['Close'].values,
 
-        'XOM_Open': xom_data['Open'].values,
+        'CVX_Open': cvx_data['Open'].values,
         'SP500_Open': sp500_data['Open'].values,
         'Oil_Open': cl_data['Open'].values,
 
-        'XOM_High': xom_data['High'].values,
+        'CVX_High': cvx_data['High'].values,
         'SP500_High': sp500_data['High'].values,
         'Oil_High': cl_data['High'].values,
 
-        'XOM_Low': xom_data['Low'].values,
+        'CVX_Low': cvx_data['Low'].values,
         'SP500_Low': sp500_data['Low'].values,
         'Oil_Low': cl_data['Low'].values,
 
-        'XOM_Volume': xom_data['Close'].values,
+        'CVX_Volume': cvx_data['Close'].values,
         'SP500_Volume': sp500_data['Close'].values,
         'Oil_Volume': cl_data['Close'].values
-        # ... [include other columns as before]
+        # Add other features if needed
     })
 
     # Normalize the data
