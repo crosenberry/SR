@@ -3,7 +3,7 @@ import xom_rnn_model
 import cvx_ann_model
 import cvx_rnn_model
 
-
+#This program is the main program that will be used to run the ANN and RNN models
 def main():
     company = input("Please enter the name of the company to predict: Chevron or Exxon: ")
     if company != "Chevron" and company != "Exxon":

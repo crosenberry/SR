@@ -6,7 +6,7 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
-
+# This file is for the ANN model for Chevron
 def generate_chevron_ann(start_dates, end_dates):
     xom = yf.Ticker('CVX')
     xom_data = xom.history(start=start_dates, end=end_dates)

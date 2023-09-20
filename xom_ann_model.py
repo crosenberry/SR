@@ -7,6 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
 
+# This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates):
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
@@ -80,6 +81,3 @@ def generate_exxon_ann(start_dates, end_dates):
     # Evaluate the model
     loss = model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
-
-
-
