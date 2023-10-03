@@ -79,5 +79,7 @@ def generate_exxon_ann(start_dates, end_dates):
     model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
-    loss = model.evaluate(x_test, y_test)
-    print('Test Loss:', loss)
+    train_loss =(model.evaluate(x_train, y_train))
+    print('Train Loss:', train_loss)
+    test_loss = model.evaluate(x_test, y_test)
+    print('Test Loss:', test_loss)

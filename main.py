@@ -16,11 +16,6 @@ def main():
         print("Invalid network type")
         return
 
-    #  test_num = int(input("Please enter training number 1-9 or 10 for formal test: "))
-    #  if test_num < 1 or test_num > 10:
-    #     print("Invalid training number")
-    #    return
-
     print("You entered: " + company + " " + network_type)
     start_dates = '2018-04-01'
     end_dates = '2019-05-05'
