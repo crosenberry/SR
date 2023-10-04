@@ -31,4 +31,11 @@ The requirements for this project are as follows:\
 To install these packages, run the following command in the terminal:\
 pip install -r requirements.txt
 
+## Usage
+To run the project, run the main.py file\
+It will prompt with the following options:\
+```Chevron or Exxon?:``` Enter Exxon if want to use Exxon data or Chevron for Chevron data\
+It will then prompt with the following options:\
+```ANN or RNN?:``` Enter ANN if want to use ANN model or RNN for RNN model
+
 
