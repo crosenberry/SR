@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 # This file is for the RNN model for Chevron
@@ -68,3 +69,25 @@ def generate_chevron_rnn(start_dates, end_dates):
     # Evaluate the model
     loss = model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
+
+# Make predictions
+    y_pred = model.predict(x_test).squeeze()
+
+    # Denormalize the data
+    print("y_test shape:", y_test.shape)
+    print("y_pred shape:", y_pred.shape)
+    print("Zero array shape:", np.zeros((y_pred.shape[0], data.shape[1] - 1)).shape)
+    y_test_actual = scaler.inverse_transform(
+        np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
+    y_pred_actual = scaler.inverse_transform(
+        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1]-1))], axis=1))[:, 0]
+
+    # Plot the de-normalized predicted and actual values
+    plt.figure(figsize=(14, 7))
+    plt.plot(y_test_actual, label='Actual Prices', color='blue')
+    plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
+    plt.title('Expected vs Actual Closing Prices (CVX RNN)')
+    plt.xlabel('Time')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.show()
