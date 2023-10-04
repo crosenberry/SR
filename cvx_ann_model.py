@@ -4,7 +4,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
+
 
 # This file is for the ANN model for Chevron
 def generate_chevron_ann(start_dates, end_dates):

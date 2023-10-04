@@ -4,6 +4,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
+
 # This file is for the RNN model for Chevron
 def generate_chevron_rnn(start_dates, end_dates):
     cvx = yf.Ticker('CVX')
