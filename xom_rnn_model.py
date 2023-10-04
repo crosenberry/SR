@@ -32,9 +32,9 @@ def generate_exxon_rnn(start_dates, end_dates):
         'SP500_Low': sp500_data['Low'].values,
         'Oil_Low': cl_data['Low'].values,
 
-        'XOM_Volume': xom_data['Close'].values,
-        'SP500_Volume': sp500_data['Close'].values,
-        'Oil_Volume': cl_data['Close'].values
+        'XOM_Volume': xom_data['Volume'].values,
+        'SP500_Volume': sp500_data['Volume'].values,
+        'Oil_Volume': cl_data['Volume'].values
         # ... [include other columns as before]
     })
 

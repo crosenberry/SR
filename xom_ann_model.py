@@ -6,12 +6,10 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 
 
-
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates):
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
-    print(xom_data.head())
     sp500 = yf.Ticker('^GSPC')
     sp500_data = sp500.history(start=start_dates, end=end_dates)
     print(sp500_data.head())
@@ -23,13 +21,14 @@ def generate_exxon_ann(start_dates, end_dates):
 
     # Combine the data of the three stocks
     data = pd.DataFrame({
-        'XOM_Close': xom_data['Close'].values,
-        'SP500_Close': sp500_data['Close'].values,
-        'Oil_Close': cl_data['Close'].values,
 
         'XOM_Open': xom_data['Open'].values,
         'SP500_Open': sp500_data['Open'].values,
         'Oil_Open': cl_data['Open'].values,
+
+        'XOM_Close': xom_data['Close'].values,
+        'SP500_Close': sp500_data['Close'].values,
+        'Oil_Close': cl_data['Close'].values,
 
         'XOM_High': xom_data['High'].values,
         'SP500_High': sp500_data['High'].values,
@@ -39,9 +38,9 @@ def generate_exxon_ann(start_dates, end_dates):
         'SP500_Low': sp500_data['Low'].values,
         'Oil_Low': cl_data['Low'].values,
 
-        'XOM_Volume': xom_data['Close'].values,
-        'SP500_Volume': sp500_data['Close'].values,
-        'Oil_Volume': cl_data['Close'].values
+        'XOM_Volume': xom_data['Volume'].values,
+        'SP500_Volume': sp500_data['Volume'].values,
+        'Oil_Volume': cl_data['Volume'].values
         # Add other features if needed
     })
     print(data.head())
@@ -72,7 +71,7 @@ def generate_exxon_ann(start_dates, end_dates):
 
     # Build the ANN model
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(40, activation='ReLU', input_shape=(4, 15)),  # Adjusted input shape
+        tf.keras.layers.Dense(40, activation='tanh', input_shape=(4, 15)),  # Adjusted input shape
         tf.keras.layers.Dense(1)
     ])
     model.compile(optimizer='adam', loss='mse')

@@ -36,9 +36,9 @@ def generate_chevron_ann(start_dates, end_dates):
         'SP500_Low': sp500_data['Low'].values,
         'Oil_Low': cl_data['Low'].values,
 
-        'CVX_Volume': xom_data['Close'].values,
-        'SP500_Volume': sp500_data['Close'].values,
-        'Oil_Volume': cl_data['Close'].values
+        'CVX_Volume': xom_data['Volume'].values,
+        'SP500_Volume': sp500_data['Volume'].values,
+        'Oil_Volume': cl_data['Volume'].values
         # Add other features if needed
     })
     print(data.head())
