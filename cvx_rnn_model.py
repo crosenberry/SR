@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 
+
 # This file is for the RNN model for Chevron
 def generate_chevron_rnn(start_dates, end_dates):
+    num_epochs_to_decay = 10
     cvx = yf.Ticker('CVX')
     cvx_data = cvx.history(start=start_dates, end=end_dates)
     sp500 = yf.Ticker('^GSPC')
@@ -62,7 +64,18 @@ def generate_chevron_rnn(start_dates, end_dates):
         tf.keras.layers.Dense(1)
     ])
 
-    model.compile(optimizer='adam', loss='mse')
+    # Define a learning rate schedule within the optimizer
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=0.01,
+        decay_steps=num_epochs_to_decay,  # OPP
+        decay_rate=1  # OPP
+    )
+
+    # Use the optimizer with the learning rate schedule
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+    # Compile the model with the optimizer
+    model.compile(optimizer=optimizer, loss='mse')
 
     # Train the model
     model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
@@ -71,7 +84,7 @@ def generate_chevron_rnn(start_dates, end_dates):
     loss = model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
 
-# Make predictions
+    # Make predictions
     y_pred = model.predict(x_test).squeeze()
 
     # Denormalize the data
@@ -81,7 +94,7 @@ def generate_chevron_rnn(start_dates, end_dates):
     y_test_actual = scaler.inverse_transform(
         np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
     y_pred_actual = scaler.inverse_transform(
-        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1]-1))], axis=1))[:, 0]
+        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))

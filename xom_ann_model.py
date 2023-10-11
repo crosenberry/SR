@@ -8,6 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates):
+    num_epochs_to_decay = 10
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
     sp500 = yf.Ticker('^GSPC')
@@ -74,7 +75,19 @@ def generate_exxon_ann(start_dates, end_dates):
         tf.keras.layers.Dense(40, activation='tanh', input_shape=(4, 15)),  # Adjusted input shape
         tf.keras.layers.Dense(1)
     ])
-    model.compile(optimizer='adam', loss='mse')
+
+    # Define a learning rate schedule within the optimizer
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=0.01,
+        decay_steps=num_epochs_to_decay,  # OPP
+        decay_rate=1  # OPP
+    )
+
+    # Use the optimizer with the learning rate schedule
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+    # Compile the model with the optimizer
+    model.compile(optimizer=optimizer, loss='mse')
 
     # Train the model
     model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
