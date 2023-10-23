@@ -17,11 +17,6 @@ def generate_chevron_ann(start_dates, end_dates):
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
-    # Ensure continuous data
-    cvx_data = cvx_data.asfreq('B').ffill()
-    sp500_data = sp500_data.asfreq('B').ffill()
-    cl_data = cl_data.asfreq('B').ffill()
-
     # Combine the data of the three stocks
     data = pd.DataFrame({
         'CVX_Close': cvx_data['Close'].values,
@@ -43,15 +38,14 @@ def generate_chevron_ann(start_dates, end_dates):
         'CVX_Volume': cvx_data['Volume'].values,
         'SP500_Volume': sp500_data['Volume'].values,
         'Oil_Volume': cl_data['Volume'].values
-        # Add other features if needed
     })
     print(data.head())
+
     # Normalize the data
     scaler = MinMaxScaler()
     data_scaled = scaler.fit_transform(data)
 
     # Prepare the dataset
-
     sequence_length = 4  # Length of input sequence
     x, y = [], []
 
@@ -98,7 +92,7 @@ def generate_chevron_ann(start_dates, end_dates):
     loss = model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
 
-# Make predictions
+    # Make predictions
     y_pred = model.predict(x_test).squeeze()
 
     # Denormalize the data
@@ -119,3 +113,6 @@ def generate_chevron_ann(start_dates, end_dates):
     plt.ylabel('Price')
     plt.legend()
     plt.show()
+
+    if __name__ == '__main__':
+        generate_chevron_ann('2018-04-01', '2019-05-05')

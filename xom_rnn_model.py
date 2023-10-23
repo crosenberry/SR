@@ -15,11 +15,6 @@ def generate_exxon_rnn(start_dates, end_dates):
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
-    # Ensure continuous data
-    xom_data = xom_data.asfreq('B').ffill()
-    sp500_data = sp500_data.asfreq('B').ffill()
-    cl_data = cl_data.asfreq('B').ffill()
-
     # Combine the data
     data = pd.DataFrame({
         'XOM_Close': xom_data['Close'].values,
@@ -41,7 +36,6 @@ def generate_exxon_rnn(start_dates, end_dates):
         'XOM_Volume': xom_data['Volume'].values,
         'SP500_Volume': sp500_data['Volume'].values,
         'Oil_Volume': cl_data['Volume'].values
-        # ... [include other columns as before]
     })
 
     # Normalize the data
@@ -111,3 +105,7 @@ def generate_exxon_rnn(start_dates, end_dates):
     plt.ylabel('Price')
     plt.legend()
     plt.show()
+
+
+if __name__ == '__main__':
+    generate_exxon_rnn('2018-04-01', '2019-05-05')

@@ -18,11 +18,6 @@ def generate_exxon_ann(start_dates, end_dates):
     cl_data = cl.history(start=start_dates, end=end_dates)
     print(cl_data.head())
 
-    # Ensure continuous data
-    xom_data = xom_data.asfreq('B').ffill()
-    sp500_data = sp500_data.asfreq('B').ffill()
-    cl_data = cl_data.asfreq('B').ffill()
-
     # Combine the data of the three stocks
     data = pd.DataFrame({
 
@@ -45,9 +40,9 @@ def generate_exxon_ann(start_dates, end_dates):
         'XOM_Volume': xom_data['Volume'].values,
         'SP500_Volume': sp500_data['Volume'].values,
         'Oil_Volume': cl_data['Volume'].values
-        # Add other features if needed
     })
     print(data.head())
+
     # Normalize the data
     scaler = MinMaxScaler()
     data_scaled = scaler.fit_transform(data)
@@ -81,7 +76,7 @@ def generate_exxon_ann(start_dates, end_dates):
 
     # Define a learning rate schedule within the optimizer
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=0.01,
+        initial_learning_rate=0.005,
         decay_steps=num_epochs_to_decay,  # OPP
         decay_rate=1  # OPP
     )
@@ -93,7 +88,7 @@ def generate_exxon_ann(start_dates, end_dates):
     model.compile(optimizer=optimizer, loss='mse')
 
     # Train the model
-    model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+    model.fit(x_train, y_train, epochs=70, batch_size=40, validation_split=0.2)
 
     # Evaluate the model
     train_loss = (model.evaluate(x_train, y_train))
@@ -122,3 +117,7 @@ def generate_exxon_ann(start_dates, end_dates):
     plt.ylabel('Price')
     plt.legend()
     plt.show()
+
+
+if __name__ == '__main__':
+    generate_exxon_ann('2018-04-01', '2019-05-05')

@@ -16,11 +16,6 @@ def generate_chevron_rnn(start_dates, end_dates):
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
-    # Ensure continuous data
-    cvx_data = cvx_data.asfreq('B').ffill()
-    sp500_data = sp500_data.asfreq('B').ffill()
-    cl_data = cl_data.asfreq('B').ffill()
-
     # Combine the data of the three stocks
     data = pd.DataFrame({
         'CVX_Close': cvx_data['Close'].values,
@@ -42,7 +37,6 @@ def generate_chevron_rnn(start_dates, end_dates):
         'CVX_Volume': cvx_data['Volume'].values,
         'SP500_Volume': sp500_data['Volume'].values,
         'Oil_Volume': cl_data['Volume'].values
-        # Add other features if needed
     })
 
     # Normalize the data
@@ -112,3 +106,7 @@ def generate_chevron_rnn(start_dates, end_dates):
     plt.ylabel('Price')
     plt.legend()
     plt.show()
+
+
+if __name__ == '__main__':
+    generate_chevron_rnn('2018-04-01', '2019-05-05')
