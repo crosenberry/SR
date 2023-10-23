@@ -16,6 +16,11 @@ def generate_chevron_rnn(start_dates, end_dates):
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
+    # Ensure continuous data
+    cvx_data = cvx_data.asfreq('B').ffill()
+    sp500_data = sp500_data.asfreq('B').ffill()
+    cl_data = cl_data.asfreq('B').ffill()
+
     # Combine the data of the three stocks
     data = pd.DataFrame({
         'CVX_Close': cvx_data['Close'].values,
@@ -57,10 +62,12 @@ def generate_chevron_rnn(start_dates, end_dates):
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
 
-    # Build the SimpleRNN model
+    # Build the SimpleRNN model with added Dropout
     model = tf.keras.Sequential([
-        tf.keras.layers.SimpleRNN(40, activation='tanh', return_sequences=True, input_shape=(4, 15)),
+        tf.keras.layers.SimpleRNN(40, activation='tanh', return_sequences=True, input_shape=(sequence_length, 15)),
+        tf.keras.layers.Dropout(0.2),  # Dropout layer for regularization
         tf.keras.layers.SimpleRNN(40, activation='tanh'),
+        tf.keras.layers.Dropout(0.2),  # Another dropout layer
         tf.keras.layers.Dense(1)
     ])
 

@@ -18,7 +18,10 @@ def generate_exxon_ann(start_dates, end_dates):
     cl_data = cl.history(start=start_dates, end=end_dates)
     print(cl_data.head())
 
-    # Assuming each stock's data has the same columns: Date, Close, and 88 other features
+    # Ensure continuous data
+    xom_data = xom_data.asfreq('B').ffill()
+    sp500_data = sp500_data.asfreq('B').ffill()
+    cl_data = cl_data.asfreq('B').ffill()
 
     # Combine the data of the three stocks
     data = pd.DataFrame({
@@ -50,15 +53,15 @@ def generate_exxon_ann(start_dates, end_dates):
     data_scaled = scaler.fit_transform(data)
 
     # Prepare the dataset
-
     sequence_length = 4  # Length of input sequence
     x, y = [], []
 
     for i in range(len(data_scaled) - sequence_length):
         x.append(data_scaled[i:i + sequence_length])
-        y.append(data_scaled[i + sequence_length][0])  # Use Stock1_Close as the output
+        y.append(data_scaled[i + sequence_length][0])  # Use XOM_Close as the output
 
     x, y = np.array(x), np.array(y)
+    x = x.reshape(x.shape[0], -1)
 
     # Define our training and testing data. 360 days for training, 40 days for testing.
     num_train_samples = int(0.9 * len(x))
@@ -72,7 +75,7 @@ def generate_exxon_ann(start_dates, end_dates):
 
     # Build the ANN model
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(40, activation='tanh', input_shape=(4, 15)),  # Adjusted input shape
+        tf.keras.layers.Dense(40, activation='tanh', input_shape=(x.shape[1],)),  # Adjusted input shape
         tf.keras.layers.Dense(1)
     ])
 
@@ -108,7 +111,7 @@ def generate_exxon_ann(start_dates, end_dates):
     y_test_actual = scaler.inverse_transform(
         np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
     y_pred_actual = scaler.inverse_transform(
-        np.concatenate([y_pred[:, 0].reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
+        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))

@@ -9,35 +9,38 @@ from sklearn.preprocessing import MinMaxScaler
 # This file is for the ANN model for Chevron
 def generate_chevron_ann(start_dates, end_dates):
     num_epochs_to_decay = 10
-    xom = yf.Ticker('CVX')
-    xom_data = xom.history(start=start_dates, end=end_dates)
-    print(xom_data.head())
+    cvx = yf.Ticker('CVX')
+    cvx_data = cvx.history(start=start_dates, end=end_dates)
+    print(cvx_data.head())
     sp500 = yf.Ticker('^GSPC')
     sp500_data = sp500.history(start=start_dates, end=end_dates)
     cl = yf.Ticker('CL=F')
     cl_data = cl.history(start=start_dates, end=end_dates)
 
-    # Assuming each stock's data has the same columns: Date, Close, and 88 other features
+    # Ensure continuous data
+    cvx_data = cvx_data.asfreq('B').ffill()
+    sp500_data = sp500_data.asfreq('B').ffill()
+    cl_data = cl_data.asfreq('B').ffill()
 
     # Combine the data of the three stocks
     data = pd.DataFrame({
-        'CVX_Close': xom_data['Close'].values,
+        'CVX_Close': cvx_data['Close'].values,
         'SP500_Close': sp500_data['Close'].values,
         'Oil_Close': cl_data['Close'].values,
 
-        'CVX_Open': xom_data['Open'].values,
+        'CVX_Open': cvx_data['Open'].values,
         'SP500_Open': sp500_data['Open'].values,
         'Oil_Open': cl_data['Open'].values,
 
-        'CVX_High': xom_data['High'].values,
+        'CVX_High': cvx_data['High'].values,
         'SP500_High': sp500_data['High'].values,
         'Oil_High': cl_data['High'].values,
 
-        'CVX_Low': xom_data['Low'].values,
+        'CVX_Low': cvx_data['Low'].values,
         'SP500_Low': sp500_data['Low'].values,
         'Oil_Low': cl_data['Low'].values,
 
-        'CVX_Volume': xom_data['Volume'].values,
+        'CVX_Volume': cvx_data['Volume'].values,
         'SP500_Volume': sp500_data['Volume'].values,
         'Oil_Volume': cl_data['Volume'].values
         # Add other features if needed
@@ -54,9 +57,10 @@ def generate_chevron_ann(start_dates, end_dates):
 
     for i in range(len(data_scaled) - sequence_length):
         x.append(data_scaled[i:i + sequence_length])
-        y.append(data_scaled[i + sequence_length][0])  # Use Stock1_Close as the output
+        y.append(data_scaled[i + sequence_length][0])  # Use CVX_Close as the output
 
     x, y = np.array(x), np.array(y)
+    x = x.reshape(x.shape[0], -1)
 
     # Define our training and testing data. 360 days for training, 40 days for testing.
     num_train_samples = int(0.9 * len(x))
@@ -70,8 +74,8 @@ def generate_chevron_ann(start_dates, end_dates):
 
     # Build the ANN model
     model = tf.keras.Sequential([
-        tf.keras.layers.Dense(40, activation='tanh', input_shape=(4, 15)),  # Adjusted input shape
-        tf.keras.layers.Dense(1)  # Output layer with 1 unit to predict XOM_Close
+        tf.keras.layers.Dense(40, activation='tanh', input_shape=(x.shape[1],)),  # Adjusted input shape
+        tf.keras.layers.Dense(1)
     ])
 
     # Define a learning rate schedule within the optimizer
@@ -104,7 +108,7 @@ def generate_chevron_ann(start_dates, end_dates):
     y_test_actual = scaler.inverse_transform(
         np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
     y_pred_actual = scaler.inverse_transform(
-        np.concatenate([y_pred[:, 0].reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
+        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))
