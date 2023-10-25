@@ -4,14 +4,16 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
+from kerastuner.tuners import RandomSearch
+from kerastuner import HyperParameters
 
 
-def generate_exxon_rnn(start_dates, end_dates):
-    seed_value = 44
+def generate_exxon_rnn(start_dates, end_dates, seed):
+    best_seed = 44
+    seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
 
-    num_epochs_to_decay = 10
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
     sp500 = yf.Ticker('^GSPC')
@@ -59,32 +61,49 @@ def generate_exxon_rnn(start_dates, end_dates):
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
 
-    # Build the SimpleRNN model with added Dropout
-    model = tf.keras.Sequential([
-        tf.keras.layers.SimpleRNN(40, activation='tanh', return_sequences=True, input_shape=(sequence_length, 15)),
-        tf.keras.layers.Dropout(0.2),  # Dropout layer for regularization
-        tf.keras.layers.SimpleRNN(40, activation='tanh'),
-        tf.keras.layers.Dropout(0.2),  # Another dropout layer
-        tf.keras.layers.Dense(1)
-    ])
+    def build_model(hp: HyperParameters):
+        model = tf.keras.Sequential([
+            tf.keras.layers.SimpleRNN(hp.Int('rnn_units_1', min_value=20, max_value=60, step=10),
+                                      activation='tanh', return_sequences=True,
+                                      input_shape=(sequence_length, 15)),
+            tf.keras.layers.Dropout(hp.Float('dropout_1', min_value=0.1, max_value=0.5, step=0.1)),
+            tf.keras.layers.SimpleRNN(hp.Int('rnn_units_2', min_value=20, max_value=60, step=10),
+                                      activation='tanh'),
+            tf.keras.layers.Dropout(hp.Float('dropout_2', min_value=0.1, max_value=0.5, step=0.1)),
+            tf.keras.layers.Dense(1)
+        ])
 
-    # Define a learning rate schedule within the optimizer
-    lr = 0.01
-    # Use the optimizer with the learning rate schedule
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        # Define a learning rate within the optimizer
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
-    # Compile the model with the optimizer
-    model.compile(optimizer=optimizer, loss='mse')
+        model.compile(optimizer=optimizer, loss='mse')
+        return model
+
+    tuner = RandomSearch(
+        build_model,
+        objective='val_loss',
+        max_trials=5,  # number of different hyperparameter combinations to test
+        executions_per_trial=3,
+        directory=f'exxon_rnn_tuning',
+        project_name=f'XOM_RNN - {seed_value}'
+    )
+
+    tuner.search_space_summary()
+    tuner.search(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)
+
+    # Get the best model
+    best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)  # OPP
+    best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
-    loss = model.evaluate(x_test, y_test)
+    loss = best_model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
 
     # Make predictions
-    y_pred = model.predict(x_test).squeeze()
+    y_pred = best_model.predict(x_test).squeeze()
 
     # Denormalize the data
     print("y_test shape:", y_test.shape)

@@ -10,11 +10,11 @@ from kerastuner import HyperParameters
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates, seed):
+    best_seed = 44
     seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
 
-    num_epochs_to_decay = 10
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
     sp500 = yf.Ticker('^GSPC')

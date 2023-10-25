@@ -6,6 +6,7 @@ import cvx_rnn_model
 
 # This program is the main program that will be used to run the ANN and RNN models
 def main():
+    global i
     company = input("Please enter the name of the company to predict: Chevron or Exxon: ")
     if company != "Chevron" and company != "Exxon":
         print("Invalid company name")
@@ -22,24 +23,18 @@ def main():
     print("Start date of data is: " + start_dates)
     print("End date of data is: " + end_dates)
 
+    seed_values = [44, 17, 4, 23, 87, 194, 222, 321, 101, 405, 784]
+
     if company == "Chevron" and network_type == "ANN":
         cvx_ann_model.generate_chevron_ann(start_dates, end_dates)
     elif company == "Chevron" and network_type == "RNN":
         cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates)
     elif company == "Exxon" and network_type == "ANN":
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 44)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 17)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 4)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 23)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 87)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 194)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 222)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 321)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 101)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 405)
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 784)
+        for i in range(len(seed_values)):
+            xom_ann_model.generate_exxon_ann(start_dates, end_dates, seed_values[i])
     elif company == "Exxon" and network_type == "RNN":
-        xom_rnn_model.generate_exxon_rnn(start_dates, end_dates)
+        for i in range(len(seed_values)):
+            xom_rnn_model.generate_exxon_rnn(start_dates, end_dates, seed_values[i])
 
 
 # Press the green button in the gutter to run the script.
