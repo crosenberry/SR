@@ -10,7 +10,6 @@ from kerastuner import HyperParameters
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates, seed):
-    best_seed = 44
     seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
@@ -139,4 +138,4 @@ def generate_exxon_ann(start_dates, end_dates, seed):
 
 
 if __name__ == '__main__':
-    generate_exxon_ann('2018-04-01', '2019-05-05')
+    generate_exxon_ann('2018-04-01', '2019-05-05', 44)

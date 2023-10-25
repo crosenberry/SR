@@ -26,9 +26,11 @@ def main():
     seed_values = [44, 17, 4, 23, 87, 194, 222, 321, 101, 405, 784]
 
     if company == "Chevron" and network_type == "ANN":
-        cvx_ann_model.generate_chevron_ann(start_dates, end_dates)
+        for i in range(len(seed_values)):
+            cvx_ann_model.generate_chevron_ann(start_dates, end_dates, seed_values[i])
     elif company == "Chevron" and network_type == "RNN":
-        cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates)
+        for i in range(len(seed_values)):
+            cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates, seed_values[i])
     elif company == "Exxon" and network_type == "ANN":
         for i in range(len(seed_values)):
             xom_ann_model.generate_exxon_ann(start_dates, end_dates, seed_values[i])

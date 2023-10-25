@@ -9,7 +9,6 @@ from kerastuner import HyperParameters
 
 
 def generate_exxon_rnn(start_dates, end_dates, seed):
-    best_seed = 44
     seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
@@ -118,7 +117,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     plt.figure(figsize=(14, 7))
     plt.plot(y_test_actual, label='Actual Prices', color='blue')
     plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
-    plt.title('Expected vs Actual Closing Prices (XOM RNN)')
+    plt.title(f'Expected vs Actual Closing Prices (XOM RNN - Seed {seed_value})')
     plt.xlabel('Time')
     plt.ylabel('Price')
     plt.legend()
@@ -126,4 +125,4 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
 
 if __name__ == '__main__':
-    generate_exxon_rnn('2018-04-01', '2019-05-05')
+    generate_exxon_rnn('2018-04-01', '2019-05-05', 44)

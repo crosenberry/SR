@@ -4,11 +4,13 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
+from kerastuner.tuners import RandomSearch
+from kerastuner import HyperParameters
 
 
 # This file is for the ANN model for Chevron
-def generate_chevron_ann(start_dates, end_dates):
-    seed_value = 44
+def generate_chevron_ann(start_dates, end_dates, seed):
+    seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
 
@@ -69,29 +71,46 @@ def generate_chevron_ann(start_dates, end_dates):
     print("x_test shape:", x_test.shape)
     print("y_test shape:", y_test.shape)
 
-    # Build the ANN model
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(40, activation='tanh', input_shape=(x.shape[1],)),  # Adjusted input shape
-        tf.keras.layers.Dense(1)
-    ])
+    def build_model(hp: HyperParameters):
+        model = tf.keras.Sequential([
+            tf.keras.layers.Dense(hp.Int('units', min_value=32, max_value=128, step=32),
+                                  activation='tanh',
+                                  input_shape=(x.shape[1],)),
+            tf.keras.layers.Dense(1)
+        ])
 
-    # Define a learning rate schedule within the optimizer
-    lr = 0.01
-    # Use the optimizer with the learning rate schedule
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        # Define a learning rate within the optimizer
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        model.compile(optimizer=optimizer, loss='mse')
+        return model
 
-    # Compile the model with the optimizer
-    model.compile(optimizer=optimizer, loss='mse')
+    # Initialize the tuner and pass the `build_model` function
+    tuner = RandomSearch(
+        build_model,
+        objective='val_loss',
+        max_trials=5,  # number of different hyperparameter combinations to test
+        executions_per_trial=3,
+        directory=f'chevron_ann_tuning',
+        project_name=f'CVX_ANN - {seed_value}'
+    )
 
-    # Train the model
-    model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+    # Find the optimal hyperparameters
+    tuner.search_space_summary()
+    tuner.search(x_train, y_train, epochs=50, validation_split=0.2)
+
+    # Get the best model
+    best_model = tuner.get_best_models(num_models=1)[0]
+
+    # Train the best model
+    best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
-    loss = model.evaluate(x_test, y_test)
+    loss = best_model.evaluate(x_test, y_test)
     print('Test Loss:', loss)
 
     # Make predictions
-    y_pred = model.predict(x_test).squeeze()
+    y_pred = best_model.predict(x_test).squeeze()
 
     # Denormalize the data
     print("y_test shape:", y_test.shape)
@@ -106,11 +125,12 @@ def generate_chevron_ann(start_dates, end_dates):
     plt.figure(figsize=(14, 7))
     plt.plot(y_test_actual, label='Actual Prices', color='blue')
     plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
-    plt.title('Expected vs Actual Closing Prices (CVX ANN)')
+    plt.title(f'Expected vs Actual Closing Prices (CVX ANN - Seed {seed_value})')
     plt.xlabel('Time')
     plt.ylabel('Price')
     plt.legend()
     plt.show()
 
-    if __name__ == '__main__':
-        generate_chevron_ann('2018-04-01', '2019-05-05')
+
+if __name__ == '__main__':
+    generate_chevron_ann('2018-04-01', '2019-05-05', 44)
