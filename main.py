@@ -6,14 +6,13 @@ import cvx_rnn_model
 
 # This program is the main program that will be used to run the ANN and RNN models
 def main():
-    global i
     company = input("Please enter the name of the company to predict: Chevron or Exxon: ")
-    if company != "Chevron" and company != "Exxon":
+    if company != "Chevron" and company != "Exxon" and company != "both":
         print("Invalid company name")
         return
 
     network_type = input("Please enter the type of network to use: ANN or RNN: ")
-    if network_type != "ANN" and network_type != "RNN":
+    if network_type != "ANN" and network_type != "RNN" and network_type != "both":
         print("Invalid network type")
         return
 
@@ -24,6 +23,13 @@ def main():
     print("End date of data is: " + end_dates)
 
     seed_values = [44, 17, 4, 23, 87, 194, 222, 321, 101, 405, 784]
+
+    if company == "both" and network_type == "both":
+        for i in range(len(seed_values)):
+            cvx_ann_model.generate_chevron_ann(start_dates, end_dates, seed_values[i])
+            cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates, seed_values[i])
+            xom_ann_model.generate_exxon_ann(start_dates, end_dates, seed_values[i])
+            xom_rnn_model.generate_exxon_rnn(start_dates, end_dates, seed_values[i])
 
     if company == "Chevron" and network_type == "ANN":
         for i in range(len(seed_values)):
