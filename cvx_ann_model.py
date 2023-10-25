@@ -77,14 +77,9 @@ def generate_chevron_ann(start_dates, end_dates):
     ])
 
     # Define a learning rate schedule within the optimizer
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=0.01,
-        decay_steps=num_epochs_to_decay,  # OPP
-        decay_rate=1  # OPP
-    )
-
+    lr = 0.01
     # Use the optimizer with the learning rate schedule
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
     # Compile the model with the optimizer
     model.compile(optimizer=optimizer, loss='mse')

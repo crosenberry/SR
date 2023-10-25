@@ -9,8 +9,8 @@ from kerastuner import HyperParameters
 
 
 # This file is for the ANN model for Exxon
-def generate_exxon_ann(start_dates, end_dates):
-    seed_value = 87
+def generate_exxon_ann(start_dates, end_dates, seed):
+    seed_value = seed
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
 
@@ -83,14 +83,9 @@ def generate_exxon_ann(start_dates, end_dates):
             tf.keras.layers.Dense(1)
         ])
 
-        # Define a learning rate schedule within the optimizer
-        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
-            decay_steps=num_epochs_to_decay,  # OPP
-            decay_rate=hp.Float('decay_rate', min_value=0.8, max_value=1.0, step=0.05)  # OPP
-        )
-
-        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+        # Define a learning rate within the optimizer
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
 

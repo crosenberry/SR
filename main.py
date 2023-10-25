@@ -27,7 +27,17 @@ def main():
     elif company == "Chevron" and network_type == "RNN":
         cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates)
     elif company == "Exxon" and network_type == "ANN":
-        xom_ann_model.generate_exxon_ann(start_dates, end_dates)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 44)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 17)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 4)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 23)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 87)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 194)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 222)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 321)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 101)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 405)
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 784)
     elif company == "Exxon" and network_type == "RNN":
         xom_rnn_model.generate_exxon_rnn(start_dates, end_dates)
 
