@@ -8,6 +8,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 # This file is for the RNN model for Chevron
 def generate_chevron_rnn(start_dates, end_dates):
+    seed_value = 44
+    np.random.seed(seed_value)
+    tf.random.set_seed(seed_value)
+
     num_epochs_to_decay = 10
     cvx = yf.Ticker('CVX')
     cvx_data = cvx.history(start=start_dates, end=end_dates)

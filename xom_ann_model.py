@@ -8,6 +8,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates):
+    seed_value = 44
+    np.random.seed(seed_value)
+    tf.random.set_seed(seed_value)
+
     num_epochs_to_decay = 10
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
@@ -76,7 +80,7 @@ def generate_exxon_ann(start_dates, end_dates):
 
     # Define a learning rate schedule within the optimizer
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=0.005,
+        initial_learning_rate=0.01,
         decay_steps=num_epochs_to_decay,  # OPP
         decay_rate=1  # OPP
     )
@@ -112,7 +116,7 @@ def generate_exxon_ann(start_dates, end_dates):
     plt.figure(figsize=(14, 7))
     plt.plot(y_test_actual, label='Actual Prices', color='blue')
     plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
-    plt.title('Expected vs Actual Closing Prices (XOM ANN)')
+    plt.title(f'Expected vs Actual Closing Prices (XOM ANN - Seed {seed_value})')
     plt.xlabel('Time')
     plt.ylabel('Price')
     plt.legend()
