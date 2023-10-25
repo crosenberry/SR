@@ -4,11 +4,13 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
+from kerastuner.tuners import RandomSearch
+from kerastuner import HyperParameters
 
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates):
-    seed_value = 44
+    seed_value = 87
     np.random.seed(seed_value)
     tf.random.set_seed(seed_value)
 
@@ -72,36 +74,54 @@ def generate_exxon_ann(start_dates, end_dates):
     print("x_test shape:", x_test.shape)
     print("y_test shape:", y_test.shape)
 
-    # Build the ANN model
-    model = tf.keras.Sequential([
-        tf.keras.layers.Dense(40, activation='tanh', input_shape=(x.shape[1],)),  # Adjusted input shape
-        tf.keras.layers.Dense(1)
-    ])
+    # Wrap ANN model  in a function for KerasTuner
+    def build_model(hp: HyperParameters):
+        model = tf.keras.Sequential([
+            tf.keras.layers.Dense(hp.Int('units', min_value=32, max_value=128, step=32),
+                                  activation='tanh',
+                                  input_shape=(x.shape[1],)),
+            tf.keras.layers.Dense(1)
+        ])
 
-    # Define a learning rate schedule within the optimizer
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=0.01,
-        decay_steps=num_epochs_to_decay,  # OPP
-        decay_rate=1  # OPP
+        # Define a learning rate schedule within the optimizer
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
+            decay_steps=num_epochs_to_decay,  # OPP
+            decay_rate=hp.Float('decay_rate', min_value=0.8, max_value=1.0, step=0.05)  # OPP
+        )
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+        model.compile(optimizer=optimizer, loss='mse')
+        return model
+
+    # Initialize the tuner and pass the `build_model` function
+    tuner = RandomSearch(
+        build_model,
+        objective='val_loss',
+        max_trials=5,  # number of different hyperparameter combinations to test
+        executions_per_trial=3,
+        directory=f'exxon_ann_tuning',
+        project_name=f'XOM_ANN - {seed_value}'
     )
 
-    # Use the optimizer with the learning rate schedule
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+    # Find the optimal hyperparameters
+    tuner.search_space_summary()
+    tuner.search(x_train, y_train, epochs=50, validation_split=0.2)
 
-    # Compile the model with the optimizer
-    model.compile(optimizer=optimizer, loss='mse')
+    # Get the best model
+    best_model = tuner.get_best_models(num_models=1)[0]
 
-    # Train the model
-    model.fit(x_train, y_train, epochs=70, batch_size=40, validation_split=0.2)
+    # Train the best model
+    best_model.fit(x_train, y_train, epochs=70, batch_size=40, validation_split=0.2)
 
     # Evaluate the model
-    train_loss = (model.evaluate(x_train, y_train))
+    train_loss = (best_model.evaluate(x_train, y_train))
     print('Train Loss:', train_loss)
-    test_loss = model.evaluate(x_test, y_test)
+    test_loss = best_model.evaluate(x_test, y_test)
     print('Test Loss:', test_loss)
 
     # Make predictions
-    y_pred = model.predict(x_test).squeeze()
+    y_pred = best_model.predict(x_test).squeeze()
 
     # Denormalize the data
     print("y_test shape:", y_test.shape)
