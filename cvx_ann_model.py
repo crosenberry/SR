@@ -65,6 +65,7 @@ def generate_chevron_ann(start_dates, end_dates, seed):
     num_train_samples = int(0.9 * len(x))
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
+    test_dates = cvx_data.index.to_series().iloc[num_train_samples + sequence_length:]
 
     print("x_train shape:", x_train.shape)
     print("y_train shape:", y_train.shape)
@@ -123,10 +124,10 @@ def generate_chevron_ann(start_dates, end_dates, seed):
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))
-    plt.plot(y_test_actual, label='Actual Prices', color='blue')
-    plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
+    plt.plot(test_dates, y_test_actual, label='Actual Prices', color='blue')
+    plt.plot(test_dates, y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
     plt.title(f'Expected vs Actual Closing Prices (CVX ANN - Seed {seed_value})')
-    plt.xlabel('Time')
+    plt.xlabel('Date')
     plt.ylabel('Price')
     plt.legend()
     plt.show()

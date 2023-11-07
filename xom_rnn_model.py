@@ -60,6 +60,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
 
+    test_dates = xom_data.index.to_series().iloc[num_train_samples + sequence_length:]
     def build_model(hp: HyperParameters):
         model = tf.keras.Sequential([
             tf.keras.layers.SimpleRNN(hp.Int('rnn_units_1', min_value=20, max_value=60, step=10),
@@ -115,10 +116,10 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))
-    plt.plot(y_test_actual, label='Actual Prices', color='blue')
-    plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
+    plt.plot(test_dates, y_test_actual, label='Actual Prices', color='blue')
+    plt.plot(test_dates, y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
     plt.title(f'Expected vs Actual Closing Prices (XOM RNN - Seed {seed_value})')
-    plt.xlabel('Time')
+    plt.xlabel('Date')
     plt.ylabel('Price')
     plt.legend()
     plt.show()
