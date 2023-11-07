@@ -53,7 +53,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     data_scaled = scaler.fit_transform(data)
 
     # Prepare the dataset
-    sequence_length = 4  # Length of input sequence
+    sequence_length = 4  # Length of input sequence (lookback)
     x, y = [], []
 
     for i in range(len(data_scaled) - sequence_length):
@@ -67,6 +67,8 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     num_train_samples = int(0.9 * len(x))
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
+
+    test_dates = xom_data.index.to_series().iloc[num_train_samples + sequence_length:]
 
     print("x_train shape:", x_train.shape)
     print("y_train shape:", y_train.shape)
@@ -83,7 +85,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.1, step=0.001),
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
@@ -128,10 +130,10 @@ def generate_exxon_ann(start_dates, end_dates, seed):
 
     # Plot the de-normalized predicted and actual values
     plt.figure(figsize=(14, 7))
-    plt.plot(y_test_actual, label='Actual Prices', color='blue')
-    plt.plot(y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
+    plt.plot(test_dates, y_test_actual, label='Actual Prices', color='blue')
+    plt.plot(test_dates, y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
     plt.title(f'Expected vs Actual Closing Prices (XOM ANN - Seed {seed_value})')
-    plt.xlabel('Time')
+    plt.xlabel('Date')
     plt.ylabel('Price')
     plt.legend()
     plt.show()

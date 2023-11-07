@@ -73,7 +73,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001)
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.1, step=0.001)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
         model.compile(optimizer=optimizer, loss='mse')

@@ -73,7 +73,8 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001)
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.1, step=0.001)
+        print("Learning rate:", lr)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
         model.compile(optimizer=optimizer, loss='mse')
@@ -95,7 +96,7 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)  # OPP
+    best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
     loss = best_model.evaluate(x_test, y_test)
@@ -125,4 +126,4 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
 
 
 if __name__ == '__main__':
-    generate_chevron_rnn('2018-04-01', '2019-05-05', 44)
+    generate_chevron_rnn('2018-04-01', '2019-05-05', 4)
