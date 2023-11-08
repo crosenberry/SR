@@ -58,7 +58,16 @@ def generate_exxon_ann(start_dates, end_dates, seed):
 
     for i in range(len(data_scaled) - sequence_length):
         x.append(data_scaled[i:i + sequence_length])
-        y.append(data_scaled[i + sequence_length][0])  # Use XOM_Close as the output
+        # Calculate percent change for the closing price
+        close_price_today = data_scaled[i + sequence_length][3]  # XOM_Close index after scaling
+        close_price_prev = data_scaled[i + sequence_length - 1][3]  # Previous day's XOM_Close
+        if close_price_prev != 0:
+            percent_change = (close_price_today - close_price_prev) / close_price_prev
+            y.append(percent_change)
+        else:
+            # Handle the case where previous close is zero
+            # For example, you could append a 0 percent change, or use another method
+            y.append(0)
 
     x, y = np.array(x), np.array(y)
     x = x.reshape(x.shape[0], -1)
@@ -85,7 +94,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.1, step=0.001),
+        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
@@ -108,7 +117,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the best model
-    best_model.fit(x_train, y_train, epochs=70, batch_size=40, validation_split=0.2)
+    best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
     train_loss = (best_model.evaluate(x_train, y_train))
@@ -118,6 +127,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
 
     # Make predictions
     y_pred = best_model.predict(x_test).squeeze()
+    print("First few prediction values:", y_pred[:5])
 
     # Denormalize the data
     print("y_test shape:", y_test.shape)
@@ -128,15 +138,20 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     y_pred_actual = scaler.inverse_transform(
         np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
 
-    # Plot the de-normalized predicted and actual values
-    plt.figure(figsize=(14, 7))
-    plt.plot(test_dates, y_test_actual, label='Actual Prices', color='blue')
-    plt.plot(test_dates, y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
-    plt.title(f'Expected vs Actual Closing Prices (XOM ANN - Seed {seed_value})')
-    plt.xlabel('Date')
-    plt.ylabel('Price')
-    plt.legend()
-    plt.show()
+    # Plot the actual percent change and the predicted percent change
+    if y_pred.size == 0:
+        print("y_pred is empty!")
+    else:
+        # Plot the actual percent change and the predicted percent change
+        plt.figure(figsize=(14, 7))
+        plt.plot(test_dates, y_test * 100, label='Actual Percent Change', color='blue')  # Scale to percentage
+        plt.plot(test_dates, y_pred * 100, label='Predicted Percent Change', color='red',
+             linestyle='dashed')  # Scale to percentage
+        plt.title(f'Expected vs Actual Percent Change in Closing Prices (XOM ANN - Seed {seed_value})')
+        plt.xlabel('Date')
+        plt.ylabel('Percent Change')
+        plt.legend()
+        plt.show()
 
 
 if __name__ == '__main__':

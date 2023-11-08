@@ -53,7 +53,10 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
     for i in range(len(data_scaled) - sequence_length):
         x.append(data_scaled[i:i + sequence_length])
-        y.append(data_scaled[i + sequence_length][0])
+        close_price_today = data_scaled[i + sequence_length][0]
+        close_price_prev = data_scaled[i + sequence_length - 1][0]
+        percent_change = (close_price_today - close_price_prev) / close_price_prev if close_price_prev != 0 else 0
+        y.append(percent_change)
 
     x, y = np.array(x), np.array(y)
     num_train_samples = int(0.9 * len(x))
@@ -74,7 +77,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.1, step=0.001)
+        lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
         model.compile(optimizer=optimizer, loss='mse')
@@ -85,7 +88,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         objective='val_loss',
         max_trials=5,  # number of different hyperparameter combinations to test
         executions_per_trial=3,
-        directory=f'exxon_rnn_tuning',
+        directory=f'tuning',
         project_name=f'XOM_RNN - {seed_value}'
     )
 
@@ -96,7 +99,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)  # OPP
+    history = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
     loss = best_model.evaluate(x_test, y_test)
@@ -105,22 +108,35 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     # Make predictions
     y_pred = best_model.predict(x_test).squeeze()
 
-    # Denormalize the data
-    print("y_test shape:", y_test.shape)
-    print("y_pred shape:", y_pred.shape)
-    print("Zero array shape:", np.zeros((y_pred.shape[0], data.shape[1] - 1)).shape)
-    y_test_actual = scaler.inverse_transform(
-        np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
-    y_pred_actual = scaler.inverse_transform(
-        np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
+    # Bin the percent changes
+    results = pd.DataFrame({
+        'Actual Percent Change': y_test,
+        'Predicted Percent Change': y_pred
+    })
+    bin_edges = [-np.inf, -0.01, -0.001, 0.001, 0.01, np.inf]
+    bin_labels = ["Strong Decrease", "Decrease", "Stable", "Increase", "Strong Increase"]
+    results['Actual Bin'] = pd.cut(results['Actual Percent Change'], bin_edges, labels=bin_labels)
+    results['Predicted Bin'] = pd.cut(results['Predicted Percent Change'], bin_edges, labels=bin_labels)
 
-    # Plot the de-normalized predicted and actual values
-    plt.figure(figsize=(14, 7))
-    plt.plot(test_dates, y_test_actual, label='Actual Prices', color='blue')
-    plt.plot(test_dates, y_pred_actual, label='Predicted Prices', color='red', linestyle='dashed')
-    plt.title(f'Expected vs Actual Closing Prices (XOM RNN - Seed {seed_value})')
-    plt.xlabel('Date')
-    plt.ylabel('Price')
+    # Plot the distribution of actual vs predicted bins
+    bin_counts_actual = results['Actual Bin'].value_counts().sort_index()
+    bin_counts_predicted = results['Predicted Bin'].value_counts().sort_index()
+    plt.figure(figsize=(10, 6))
+    bin_counts_actual.plot(kind='bar', color='blue', alpha=0.6, label='Actual')
+    bin_counts_predicted.plot(kind='bar', color='red', alpha=0.6, label='Predicted')
+    plt.xlabel('Bins')
+    plt.ylabel('Count')
+    plt.title('Distribution of Actual vs Predicted Percent Changes')
+    plt.legend()
+    plt.show()
+
+    # You might also want to plot the training and validation loss
+    plt.figure(figsize=(10, 6))
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.title('Training and Validation Loss Over Epochs')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
     plt.legend()
     plt.show()
 
