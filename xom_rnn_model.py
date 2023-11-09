@@ -126,7 +126,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     bin_counts_predicted.plot(kind='bar', color='red', alpha=0.6, label='Predicted')
     plt.xlabel('Bins')
     plt.ylabel('Count')
-    plt.title('Distribution of Actual vs Predicted Percent Changes')
+    plt.title(f'Distribution of Actual vs Predicted Percent Changes (XOM RNN - Seed {seed_value}')
     plt.legend()
     plt.show()
 
@@ -134,7 +134,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     plt.figure(figsize=(10, 6))
     plt.plot(history.history['loss'], label='Training Loss')
     plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.title('Training and Validation Loss Over Epochs')
+    plt.title(f'Training and Validation Loss Over Epochs (XOM RNN - Seed {seed_value}')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
