@@ -66,7 +66,6 @@ def generate_exxon_ann(start_dates, end_dates, seed):
             y.append(percent_change)
         else:
             # Handle the case where previous close is zero
-            # For example, you could append a 0 percent change, or use another method
             y.append(0)
 
     x, y = np.array(x), np.array(y)
@@ -94,7 +93,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
         ])
 
         # Define a learning rate within the optimizer
-        lr = hp.Float('learning_rate', min_value=0.001, max_value=0.01, step=0.001),
+        lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001),
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
@@ -117,7 +116,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the best model
-    best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+    trained_model = best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
     train_loss = (best_model.evaluate(x_train, y_train))
@@ -129,6 +128,16 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     y_pred = best_model.predict(x_test).squeeze()
     print("First few prediction values:", y_pred[:5])
 
+    # Bin the percent changes
+    results = pd.DataFrame({
+        'Actual Percent Change': y_test,
+        'Predicted Percent Change': y_pred
+    })
+    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
+    bin_labels = ["Strong Decrease", "Decrease", "Stable", "Increase", "Strong Increase"]
+    results['Actual Bin'] = pd.cut(results['Actual Percent Change'], bin_edges, labels=bin_labels)
+    results['Predicted Bin'] = pd.cut(results['Predicted Percent Change'], bin_edges, labels=bin_labels)
+
     # Denormalize the data
     print("y_test shape:", y_test.shape)
     print("y_pred shape:", y_pred.shape)
@@ -137,6 +146,28 @@ def generate_exxon_ann(start_dates, end_dates, seed):
         np.concatenate([y_test.reshape(-1, 1), np.zeros((y_test.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
     y_pred_actual = scaler.inverse_transform(
         np.concatenate([y_pred.reshape(-1, 1), np.zeros((y_pred.shape[0], data.shape[1] - 1))], axis=1))[:, 0]
+
+    # Plot the distribution of actual vs predicted bins
+    bin_counts_actual = results['Actual Bin'].value_counts().sort_index()
+    bin_counts_predicted = results['Predicted Bin'].value_counts().sort_index()
+    plt.figure(figsize=(10, 6))
+    bin_counts_actual.plot(kind='bar', color='blue', alpha=0.6, label='Actual')
+    bin_counts_predicted.plot(kind='bar', color='red', alpha=0.6, label='Predicted')
+    plt.xlabel('Bins')
+    plt.ylabel('Count')
+    plt.title(f'Distribution of Actual vs Predicted Percent Changes (XOM ANN - Seed {seed_value}')
+    plt.legend()
+    plt.show()
+
+    # plot the training and validation loss
+    plt.figure(figsize=(10, 6))
+    plt.plot(trained_model.history['loss'], label='Training Loss')
+    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
+    plt.title(f'Training and Validation Loss Over Epochs (XOM ANN - Seed {seed_value}')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
 
     # Plot the actual percent change and the predicted percent change
     if y_pred.size == 0:

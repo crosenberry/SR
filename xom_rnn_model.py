@@ -53,16 +53,20 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
     for i in range(len(data_scaled) - sequence_length):
         x.append(data_scaled[i:i + sequence_length])
-        close_price_today = data_scaled[i + sequence_length][0]
-        close_price_prev = data_scaled[i + sequence_length - 1][0]
-        percent_change = (close_price_today - close_price_prev) / close_price_prev if close_price_prev != 0 else 0
-        y.append(percent_change)
+        # Calculate percent change for the closing price
+        close_price_today = data_scaled[i + sequence_length][3]  # XOM_Close index after scaling
+        close_price_prev = data_scaled[i + sequence_length - 1][3]  # Previous day's XOM_Close
+        if close_price_prev != 0:
+            percent_change = (close_price_today - close_price_prev) / close_price_prev
+            y.append(percent_change)
+        else:
+            # Handle the case where previous close is zero
+            y.append(0)
 
     x, y = np.array(x), np.array(y)
     num_train_samples = int(0.9 * len(x))
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y[:num_train_samples], y[num_train_samples:]
-
     test_dates = xom_data.index.to_series().iloc[num_train_samples + sequence_length:]
     def build_model(hp: HyperParameters):
         model = tf.keras.Sequential([
@@ -88,7 +92,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         objective='val_loss',
         max_trials=5,  # number of different hyperparameter combinations to test
         executions_per_trial=3,
-        directory=f'tuning',
+        directory=f'exxon_rnn_tuning',
         project_name=f'XOM_RNN - {seed_value}'
     )
 
@@ -99,7 +103,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    history = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
+    trained_model = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
     loss = best_model.evaluate(x_test, y_test)
@@ -113,7 +117,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         'Actual Percent Change': y_test,
         'Predicted Percent Change': y_pred
     })
-    bin_edges = [-np.inf, -0.01, -0.001, 0.001, 0.01, np.inf]
+    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
     bin_labels = ["Strong Decrease", "Decrease", "Stable", "Increase", "Strong Increase"]
     results['Actual Bin'] = pd.cut(results['Actual Percent Change'], bin_edges, labels=bin_labels)
     results['Predicted Bin'] = pd.cut(results['Predicted Percent Change'], bin_edges, labels=bin_labels)
@@ -130,15 +134,30 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     plt.legend()
     plt.show()
 
-    # You might also want to plot the training and validation loss
+    #  plot the training and validation loss
     plt.figure(figsize=(10, 6))
-    plt.plot(history.history['loss'], label='Training Loss')
-    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.plot(trained_model.history['loss'], label='Training Loss')
+    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
     plt.title(f'Training and Validation Loss Over Epochs (XOM RNN - Seed {seed_value}')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.legend()
     plt.show()
+
+    # Plot the actual percent change and the predicted percent change
+    if y_pred.size == 0:
+        print("y_pred is empty!")
+    else:
+        # Plot the actual percent change and the predicted percent change
+        plt.figure(figsize=(14, 7))
+        plt.plot(test_dates, y_test * 100, label='Actual Percent Change', color='blue')  # Scale to percentage
+        plt.plot(test_dates, y_pred * 100, label='Predicted Percent Change', color='red',
+             linestyle='dashed')  # Scale to percentage
+        plt.title(f'Expected vs Actual Percent Change in Closing Prices (XOM RNN - Seed {seed_value})')
+        plt.xlabel('Date')
+        plt.ylabel('Percent Change')
+        plt.legend()
+        plt.show()
 
 
 if __name__ == '__main__':
