@@ -91,6 +91,7 @@ def generate_chevron_ann(start_dates, end_dates, seed):
         # Define a learning rate within the optimizer
         lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001),
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
+        print("Learning rate:", lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
 
@@ -149,14 +150,14 @@ def generate_chevron_ann(start_dates, end_dates, seed):
     plt.show()
 
     # plot the training and validation loss
-    plt.figure(figsize=(10, 6))
-    plt.plot(trained_model.history['loss'], label='Training Loss')
-    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
-    plt.title(f'Training and Validation Loss Over Epochs (CVX ANN - Seed {seed_value}')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(trained_model.history['loss'], label='Training Loss')
+    # plt.plot(trained_model.history['val_loss'], label='Validation Loss')
+    # plt.title(f'Training and Validation Loss Over Epochs (CVX ANN - Seed {seed_value}')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.show()
 
     # Plot the actual percent change and the predicted percent change
     if y_pred.size == 0:
@@ -174,4 +175,4 @@ def generate_chevron_ann(start_dates, end_dates, seed):
         plt.show()
 
 if __name__ == '__main__':
-    generate_chevron_ann('2018-04-01', '2019-05-05', 44)
+    generate_chevron_ann('2018-04-01', '2019-05-05', 405)

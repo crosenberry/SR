@@ -105,7 +105,7 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    trained_model = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
+    trained_model = best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
     loss = best_model.evaluate(x_test, y_test)
@@ -137,14 +137,14 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     plt.show()
 
     #  plot the training and validation loss
-    plt.figure(figsize=(10, 6))
-    plt.plot(trained_model.history['loss'], label='Training Loss')
-    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
-    plt.title(f'Training and Validation Loss Over Epochs (CVX RNN - Seed {seed_value}')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(trained_model.history['loss'], label='Training Loss')
+    # plt.plot(trained_model.history['val_loss'], label='Validation Loss')
+    # plt.title(f'Training and Validation Loss Over Epochs (CVX RNN - Seed {seed_value}')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.show()
 
     # Plot the actual percent change and the predicted percent change
     if y_pred.size == 0:
@@ -161,6 +161,6 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
         plt.legend()
         plt.show()
 
-
+# 101, 405, 784
 if __name__ == '__main__':
-    generate_chevron_rnn('2018-04-01', '2019-05-05', 4)
+    generate_chevron_rnn('2018-04-01', '2019-05-05', 784)

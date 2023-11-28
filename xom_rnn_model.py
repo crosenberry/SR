@@ -82,6 +82,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
         # Define a learning rate within the optimizer
         lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001)
+        print(f'Learning rate: {lr}')
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 
         model.compile(optimizer=optimizer, loss='mse')
@@ -103,7 +104,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    trained_model = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)  # OPP
+    trained_model = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)  # OPP
 
     # Evaluate the model
     loss = best_model.evaluate(x_test, y_test)
@@ -134,7 +135,7 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     plt.legend()
     plt.show()
 
-    #  plot the training and validation loss
+    # plot the training and validation loss
     plt.figure(figsize=(10, 6))
     plt.plot(trained_model.history['loss'], label='Training Loss')
     plt.plot(trained_model.history['val_loss'], label='Validation Loss')
@@ -159,6 +160,6 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
         plt.legend()
         plt.show()
 
-
+#87 194
 if __name__ == '__main__':
-    generate_exxon_rnn('2018-04-01', '2019-05-05', 44)
+    generate_exxon_rnn('2018-04-01', '2019-05-05', 87)

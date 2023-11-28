@@ -94,6 +94,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
 
         # Define a learning rate within the optimizer
         lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001),
+        print("Learning rate:", lr)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
         model.compile(optimizer=optimizer, loss='mse')
         return model
@@ -116,7 +117,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the best model
-    trained_model = best_model.fit(x_train, y_train, epochs=70, batch_size=32, validation_split=0.2)
+    trained_model = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
     train_loss = (best_model.evaluate(x_train, y_train))
@@ -160,14 +161,14 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     plt.show()
 
     # plot the training and validation loss
-    plt.figure(figsize=(10, 6))
-    plt.plot(trained_model.history['loss'], label='Training Loss')
-    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
-    plt.title(f'Training and Validation Loss Over Epochs (XOM ANN - Seed {seed_value}')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
+    # plt.figure(figsize=(10, 6))
+    # plt.plot(trained_model.history['loss'], label='Training Loss')
+    # plt.plot(trained_model.history['val_loss'], label='Validation Loss')
+    # plt.title(f'Training and Validation Loss Over Epochs (XOM ANN - Seed {seed_value}')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.legend()
+    # plt.show()
 
     # Plot the actual percent change and the predicted percent change
     if y_pred.size == 0:
@@ -184,6 +185,6 @@ def generate_exxon_ann(start_dates, end_dates, seed):
         plt.legend()
         plt.show()
 
-
+# learning rate
 if __name__ == '__main__':
-    generate_exxon_ann('2018-04-01', '2019-05-05', 44)
+    generate_exxon_ann('2018-04-01', '2019-05-05', 222)
