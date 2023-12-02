@@ -15,32 +15,14 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
 
     xom = yf.Ticker('XOM')
     xom_data = xom.history(start=start_dates, end=end_dates)
-    sp500 = yf.Ticker('^GSPC')
-    sp500_data = sp500.history(start=start_dates, end=end_dates)
-    cl = yf.Ticker('CL=F')
-    cl_data = cl.history(start=start_dates, end=end_dates)
 
     # Combine the data
     data = pd.DataFrame({
         'XOM_Close': xom_data['Close'].values,
-        'SP500_Close': sp500_data['Close'].values,
-        'Oil_Close': cl_data['Close'].values,
-
         'XOM_Open': xom_data['Open'].values,
-        'SP500_Open': sp500_data['Open'].values,
-        'Oil_Open': cl_data['Open'].values,
-
         'XOM_High': xom_data['High'].values,
-        'SP500_High': sp500_data['High'].values,
-        'Oil_High': cl_data['High'].values,
-
         'XOM_Low': xom_data['Low'].values,
-        'SP500_Low': sp500_data['Low'].values,
-        'Oil_Low': cl_data['Low'].values,
-
-        'XOM_Volume': xom_data['Volume'].values,
-        'SP500_Volume': sp500_data['Volume'].values,
-        'Oil_Volume': cl_data['Volume'].values
+        'XOM_Volume': xom_data['Volume'].values
     })
 
     # Normalize the data
@@ -64,34 +46,46 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
             y.append(0)
 
     x, y = np.array(x), np.array(y)
+
+    # Convert percent changes to categorical bins
+    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
+    bin_labels = ["Strong Decrease (< -5%)",
+                  "Decrease (-5% to -1%)",
+                  "Stable (-1% to 1%)",
+                  "Increase (1% to 5%)",
+                  "Strong Increase (> 5%)"]
+    y_binned = np.digitize(y, bins=bin_edges) - 1
+    y_categorical = tf.keras.utils.to_categorical(y_binned, num_classes=len(bin_labels))
+
     num_train_samples = int(0.9 * len(x))
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
-    y_train, y_test = y[:num_train_samples], y[num_train_samples:]
+    y_train, y_test = y_categorical[:num_train_samples], y_categorical[num_train_samples:]
     test_dates = xom_data.index.to_series().iloc[num_train_samples + sequence_length:]
+
+  # RNN model architecture
     def build_model(hp: HyperParameters):
         model = tf.keras.Sequential([
             tf.keras.layers.SimpleRNN(hp.Int('rnn_units_1', min_value=20, max_value=60, step=10),
                                       activation='tanh', return_sequences=True,
-                                      input_shape=(sequence_length, 15)),
+                                      input_shape=(sequence_length, 5)),
             tf.keras.layers.Dropout(hp.Float('dropout_1', min_value=0.1, max_value=0.5, step=0.1)),
             tf.keras.layers.SimpleRNN(hp.Int('rnn_units_2', min_value=20, max_value=60, step=10),
                                       activation='tanh'),
             tf.keras.layers.Dropout(hp.Float('dropout_2', min_value=0.1, max_value=0.5, step=0.1)),
-            tf.keras.layers.Dense(1)
+            tf.keras.layers.Dense(len(bin_labels), activation='softmax')  # Output layer for bins
         ])
 
         # Define a learning rate within the optimizer
         lr = hp.Float('learning_rate', min_value=0.0001, max_value=0.01, step=0.001)
-        print(f'Learning rate: {lr}')
+        print("Learning rate:", lr)
         optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
-
-        model.compile(optimizer=optimizer, loss='mse')
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
     tuner = RandomSearch(
         build_model,
         objective='val_loss',
-        max_trials=5,  # number of different hyperparameter combinations to test
+        max_trials=15,  # number of different hyperparameter combinations to test
         executions_per_trial=3,
         directory=f'exxon_rnn_tuning',
         project_name=f'XOM_RNN - {seed_value}'
@@ -104,62 +98,59 @@ def generate_exxon_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    trained_model = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)  # OPP
+    trained_model = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
-    loss = best_model.evaluate(x_test, y_test)
-    print('Test Loss:', loss)
+    test_loss, test_accuracy = best_model.evaluate(x_test, y_test)
+    print('Test Loss:', test_loss)
+    print('Test Accuracy:', test_accuracy)
 
-    # Make predictions
-    y_pred = best_model.predict(x_test).squeeze()
+    # Make predictions and categorize into bins
+    y_pred_prob = best_model.predict(x_test)
+    y_pred_binned = np.argmax(y_pred_prob, axis=1)
+    y_test_binned = np.argmax(y_test, axis=1)
 
-    # Bin the percent changes
+    # Plotting the distribution of actual vs predicted bins
     results = pd.DataFrame({
-        'Actual Percent Change': y_test,
-        'Predicted Percent Change': y_pred
+        'Actual Bin': y_test_binned,
+        'Predicted Bin': y_pred_binned
     })
-    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
-    bin_labels = ["Strong Decrease", "Decrease", "Stable", "Increase", "Strong Increase"]
-    results['Actual Bin'] = pd.cut(results['Actual Percent Change'], bin_edges, labels=bin_labels)
-    results['Predicted Bin'] = pd.cut(results['Predicted Percent Change'], bin_edges, labels=bin_labels)
 
-    # Plot the distribution of actual vs predicted bins
-    bin_counts_actual = results['Actual Bin'].value_counts().sort_index()
-    bin_counts_predicted = results['Predicted Bin'].value_counts().sort_index()
-    plt.figure(figsize=(10, 6))
-    bin_counts_actual.plot(kind='bar', color='blue', alpha=0.6, label='Actual')
-    bin_counts_predicted.plot(kind='bar', color='red', alpha=0.6, label='Predicted')
-    plt.xlabel('Bins')
-    plt.ylabel('Count')
-    plt.title(f'Distribution of Actual vs Predicted Percent Changes (XOM RNN - Seed {seed_value}')
-    plt.legend()
+    bin_counts_actual = np.bincount(results['Actual Bin'], minlength=len(bin_labels))
+    bin_counts_predicted = np.bincount(results['Predicted Bin'], minlength=len(bin_labels))
+
+    # Create the plot
+    x = np.arange(len(bin_labels))  # the label locations
+    width = 0.35  # the width of the bars
+
+    fig, ax = plt.subplots(figsize=(12, 8))
+    rects1 = ax.bar(x - width / 2, bin_counts_actual, width, label='Actual', color='blue')
+    rects2 = ax.bar(x + width / 2, bin_counts_predicted, width, label='Predicted', color='red')
+
+    # Add some text for labels, title, and custom x-axis tick labels
+    ax.set_xlabel('Bins')
+    ax.set_ylabel('Count')
+    ax.set_title(f'Distribution of Actual vs Predicted Bins (XOM RNN- Seed {seed_value})')
+    ax.set_xticks(x)
+    ax.set_xticklabels(bin_labels, rotation=45)  # Rotate labels for better readability
+    ax.legend()
+
+    # Function to attach a text label above each bar
+    def autolabel(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate('{}'.format(height),
+                        xy=(rect.get_x() + rect.get_width() / 2, height),
+                        xytext=(0, 3),  # 3 points vertical offset
+                        textcoords="offset points",
+                        ha='center', va='bottom')
+
+    autolabel(rects1)
+    autolabel(rects2)
+    plt.tight_layout()
     plt.show()
 
-    # plot the training and validation loss
-    plt.figure(figsize=(10, 6))
-    plt.plot(trained_model.history['loss'], label='Training Loss')
-    plt.plot(trained_model.history['val_loss'], label='Validation Loss')
-    plt.title(f'Training and Validation Loss Over Epochs (XOM RNN - Seed {seed_value}')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-    plt.show()
 
-    # Plot the actual percent change and the predicted percent change
-    if y_pred.size == 0:
-        print("y_pred is empty!")
-    else:
-        # Plot the actual percent change and the predicted percent change
-        plt.figure(figsize=(14, 7))
-        plt.plot(test_dates, y_test * 100, label='Actual Percent Change', color='blue')  # Scale to percentage
-        plt.plot(test_dates, y_pred * 100, label='Predicted Percent Change', color='red',
-             linestyle='dashed')  # Scale to percentage
-        plt.title(f'Expected vs Actual Percent Change in Closing Prices (XOM RNN - Seed {seed_value})')
-        plt.xlabel('Date')
-        plt.ylabel('Percent Change')
-        plt.legend()
-        plt.show()
-
-#87 194
+# Main execution
 if __name__ == '__main__':
     generate_exxon_rnn('2018-04-01', '2019-05-05', 87)
