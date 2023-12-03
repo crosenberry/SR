@@ -6,6 +6,8 @@ import yfinance as yf
 from sklearn.preprocessing import MinMaxScaler
 from kerastuner.tuners import RandomSearch
 from kerastuner import HyperParameters
+from sklearn.metrics import classification_report, accuracy_score
+
 
 # This file is for the ANN model for Exxon
 def generate_exxon_ann(start_dates, end_dates, seed):
@@ -50,11 +52,11 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     x = x.reshape(x.shape[0], -1)
 
     # Convert percent changes to categorical bins
-    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
+    bin_edges = [-np.inf, -0.05, -0.015, 0.015, 0.05, np.inf]
     bin_labels = ["Strong Decrease (< -5%)",
-                  "Decrease (-5% to -1%)",
-                  "Stable (-1% to 1%)",
-                  "Increase (1% to 5%)",
+                  "Decrease (-5% to -1.5%)",
+                  "Stable (-1.5% to 1.5%)",
+                  "Increase (1.5% to 5%)",
                   "Strong Increase (> 5%)"]
     y_binned = np.digitize(y, bins=bin_edges) - 1
     y_categorical = tf.keras.utils.to_categorical(y_binned, num_classes=len(bin_labels))
@@ -63,7 +65,6 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     num_train_samples = int(0.9 * len(x))
     x_train, x_test = x[:num_train_samples], x[num_train_samples:]
     y_train, y_test = y_categorical[:num_train_samples], y_categorical[num_train_samples:]
-
 
     test_dates = xom_data.index.to_series().iloc[num_train_samples + sequence_length:]
 
@@ -90,8 +91,8 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     tuner = RandomSearch(
         build_model,
         objective='val_loss',
-        max_trials=15,  # number of different hyperparameter combinations to test
-        executions_per_trial=3,
+        max_trials=10,  # number of different hyperparameter combinations to test
+        executions_per_trial=5,
         directory=f'exxon_ann_tuning',
         project_name=f'XOM_ANN - {seed_value}'
     )
@@ -103,7 +104,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the best model
-    trained_model = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
+    history = best_model.fit(x_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
     train_loss, train_accuracy = best_model.evaluate(x_train, y_train)
@@ -117,6 +118,14 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     y_pred_prob = best_model.predict(x_test)
     y_pred_binned = np.argmax(y_pred_prob, axis=1)
     y_test_binned = np.argmax(y_test, axis=1)
+
+    # Calculate the accuracy
+    accuracy = accuracy_score(y_test_binned, y_pred_binned)
+    print(f'Accuracy: {accuracy:.2f}')
+
+    class_report = classification_report(y_test_binned, y_pred_binned, target_names=bin_labels, zero_division=0)
+    print("Classification Report:")
+    print(class_report)
 
     # Calculate bin counts for actual and predicted
     bin_counts_actual = np.bincount(y_test_binned, minlength=len(bin_labels))
@@ -138,7 +147,7 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     ax.set_xticklabels(bin_labels, rotation=45)  # Rotate labels for better readability
     ax.legend()
 
-    # Function to attach a text label above each bar
+    # Function to add count above each bar
     def autolabel(rects):
         for rect in rects:
             height = rect.get_height()
@@ -153,7 +162,24 @@ def generate_exxon_ann(start_dates, end_dates, seed):
     plt.tight_layout()
     plt.show()
 
+    # Prepare data for statistical analysis
+    epochs = range(1, 51)  # Assuming 50 epochs
+    history_data = {
+        'Epoch': epochs,
+        'Train Accuracy': history.history['accuracy'],
+        'Train Loss': history.history['loss'],
+        'Validation Accuracy': history.history['val_accuracy'],
+        'Validation Loss': history.history['val_loss']
+    }
+
+    # Convert the dictionary to a DataFrame
+    history_df = pd.DataFrame(history_data)
+
+    # Save the history DataFrame to a CSV file
+    history_file_name = f'exxon_ann_history_seed_{seed_value}.csv'
+    history_df.to_csv(history_file_name, index=False)
+    print(f'History data saved to {history_file_name}')
 
 # learning rate
 if __name__ == '__main__':
-    generate_exxon_ann('2018-04-01', '2019-05-05', 4)
+    generate_exxon_ann('2018-04-01', '2019-05-05', 194)

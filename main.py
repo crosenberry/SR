@@ -43,6 +43,12 @@ def main():
     elif company == "Exxon" and network_type == "RNN":
         for i in range(len(seed_values)):
             xom_rnn_model.generate_exxon_rnn(start_dates, end_dates, seed_values[i])
+    elif company == "Exxon" and network_type == "both":
+        xom_ann_model.generate_exxon_ann(start_dates, end_dates, 194)
+        xom_rnn_model.generate_exxon_rnn(start_dates, end_dates, 222)
+    elif company == "Chevron" and network_type == "both":
+        cvx_ann_model.generate_chevron_ann(start_dates, end_dates, 87)
+        cvx_rnn_model.generate_chevron_rnn(start_dates, end_dates, 4)
 
 
 # Press the green button in the gutter to run the script.

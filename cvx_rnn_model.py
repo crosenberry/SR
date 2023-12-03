@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import yfinance as yf
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.preprocessing import MinMaxScaler
 from kerastuner.tuners import RandomSearch
 from kerastuner import HyperParameters
@@ -48,11 +49,11 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     x, y = np.array(x), np.array(y)
 
     # Convert percent changes to categorical bins
-    bin_edges = [-np.inf, -0.05, -0.01, 0.01, 0.05, np.inf]
+    bin_edges = [-np.inf, -0.05, -0.015, 0.015, 0.05, np.inf]
     bin_labels = ["Strong Decrease (< -5%)",
-                  "Decrease (-5% to -1%)",
-                  "Stable (-1% to 1%)",
-                  "Increase (1% to 5%)",
+                  "Decrease (-5% to -1.5%)",
+                  "Stable (-1.5% to 1.5%)",
+                  "Increase (1.5% to 5%)",
                   "Strong Increase (> 5%)"]
     y_binned = np.digitize(y, bins=bin_edges) - 1
     y_categorical = tf.keras.utils.to_categorical(y_binned, num_classes=len(bin_labels))
@@ -86,7 +87,7 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
         build_model,
         objective='val_loss',
         max_trials=10,  # number of different hyperparameter combinations to test
-        executions_per_trial=3,
+        executions_per_trial=5,
         directory=f'chevron_rnn_tuning',
         project_name=f'CVX_RNN - {seed_value}'
     )
@@ -98,7 +99,7 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     best_model = tuner.get_best_models(num_models=1)[0]
 
     # Train the model
-    trained_model = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)
+    history = best_model.fit(x_train, y_train, epochs=60, batch_size=32, validation_split=0.2)
 
     # Evaluate the model
     test_loss, test_accuracy = best_model.evaluate(x_test, y_test)
@@ -115,6 +116,14 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
         'Actual Bin': y_test_binned,
         'Predicted Bin': y_pred_binned
     })
+
+    # Calculate the accuracy
+    accuracy = accuracy_score(y_test_binned, y_pred_binned)
+    print(f'Accuracy: {accuracy:.2f}')
+
+    class_report = classification_report(y_test_binned, y_pred_binned, target_names=bin_labels, zero_division=0)
+    print("Classification Report:")
+    print(class_report)
 
     bin_counts_actual = np.bincount(results['Actual Bin'], minlength=len(bin_labels))
     bin_counts_predicted = np.bincount(results['Predicted Bin'], minlength=len(bin_labels))
@@ -150,7 +159,24 @@ def generate_chevron_rnn(start_dates, end_dates, seed):
     plt.tight_layout()
     plt.show()
 
+ # Prepare data for statistical analysis
+    epochs = range(1, 61)  # Assuming 50 epochs
+    history_data = {
+        'Epoch': epochs,
+        'Train Accuracy': history.history['accuracy'],
+        'Train Loss': history.history['loss'],
+        'Validation Accuracy': history.history['val_accuracy'],
+        'Validation Loss': history.history['val_loss']
+    }
+
+    # Convert the dictionary to a DataFrame
+    history_df = pd.DataFrame(history_data)
+
+    # Save the history DataFrame to a CSV file
+    history_file_name = f'chevron_rnn_history_seed_{seed_value}.csv'
+    history_df.to_csv(history_file_name, index=False)
+    print(f'History data saved to {history_file_name}')
 
 # 101, 405, 784
 if __name__ == '__main__':
-    generate_chevron_rnn('2018-04-01', '2019-05-05', 784)
+    generate_chevron_rnn('2018-04-01', '2019-05-05', 4)
